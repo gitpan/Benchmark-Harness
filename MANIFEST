@@ -4,6 +4,7 @@ README
 CHANGES
 prereqinst.pl
 Harness.pm
+Harness/Handler.pm
 Harness/Trace.pm
 Harness/TraceHighRes.pm
 t/t.t

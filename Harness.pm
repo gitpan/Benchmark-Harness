@@ -2,7 +2,7 @@ package Benchmark::Harness;
 use Benchmark::Harness::Handler;
 use strict;
 use vars qw($VERSION $CVS_VERSION);
-$VERSION = '1.08';
+$VERSION = '1.09';
 $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
 
 =pod
