@@ -27,7 +27,7 @@ if ( $^O eq 'MSWin32' ) {
 
 WriteMakefile(
     'NAME'	=> 'Benchmark::Harness',
-    'VERSION' => '1.11',
+    'VERSION' => '1.12',
     'PREREQ_PM' => $prereq_pm,
     ($] ge '5.005') ? (
                      'AUTHOR' => 'Glenn Wood http://search.cpan.org/~glennwood/',

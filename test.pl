@@ -24,7 +24,7 @@ my $Authentication = $main::AuthenticationForTesting;
 }
 }
 
-use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.3 $ =~ /(\d+)\.(\d+)/);
 
 
 ### yinst install Proc::ProcessTable -nosudo -root /home/goto/big/stats
@@ -46,7 +46,8 @@ for my $handler ( @Tests ) {
 # THIS ALSO SERVES AS AN EXAMPLE OF A FULLY FUNCTIONAL Benchmark::Harness CLIENT
     # Trace simple looping
     my @traceParameters = qw(TestServer::Loop (0)TestServer::Max (2|1)TestServer::M.*);
-    my $traceHarness = new Benchmark::Harness($AuthenticationForTesting, $handler.'(1)', @traceParameters);
+    my $traceHarness = new  Benchmark::Harness($AuthenticationForTesting, $handler.'(1)', @traceParameters);
+    my $doh          = Benchmark::Harness::new($AuthenticationForTesting, $handler.'(1)', @traceParameters);
     for (my $i=0; $i<10; $i++ ) {
         TestServer::new(5,10,15,3,4); # Fire the server method,
     }
@@ -65,7 +66,7 @@ for my $handler ( @Tests ) {
 
     # These attributes will not be the same for all tests, once each.
     $$old =~ s{\n}{}gs;
-    for ( qw(n tm pid userid os) ) {
+    for ( qw(v V n tm pid userid os) ) {
         $$old =~ s{ $_=(['"]).*?\1}{};
     }
     # These attributes will not be the same for all tests, many times.
@@ -73,12 +74,26 @@ for my $handler ( @Tests ) {
         $$old =~ s{ $_=(['"]).*?\1}{}gs;
     }
     
+    # New-lines, of whatever religion, do not matter to us here
+    $$old =~ s{\r?\n}{}g;
+
     # Values traces will have different ARRAY(ref) strings
     $$old =~ s{(ARRAY)\([^)]*\)}{$1}gs if ( $handler =~ m{Values} );
 
     # Compare our results with what is expected.
     if ( open TMP, "<t/benchmark.$handler.xml" ) {
         my $tmp = join '',<TMP>; close TMP;
+        
+        # New-lines, of whatever religion, do not matter to us here
+        $tmp =~ s{\n}{}g;
+        $tmp =~ s{>\s*}{>}g;
+        $tmp =~ s{="([^"]*)"}{='$1'}g;
+        $tmp =~ s{\s\s}{ }g; # your're kiding!
+        $$old =~ s{\n}{}g;
+        $$old =~ s{>\s*}{>}g;
+        $$old =~ s{="([^"]*)"}{='$1'}g;
+        $$old =~ s{\s\s}{ }g; # your're kiding!
+ 
         my $success = $tmp eq $$old;
         ok ( $success, "Result cmp Expected (result ".($success?'eq':'ne')." t/benchmark.$handler.xml)" ) ;
     } else {

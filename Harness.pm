@@ -4,7 +4,7 @@ use Benchmark::Harness::Constants;
 
 use vars qw($VERSION $VERSION $IS_HARNESS_MODE);
 $VERSION = '1.11';
-$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.3 $ =~ /(\d+)\.(\d+)/);
 $IS_HARNESS_MODE = 0; ## PREVENT INTER-MODAL RECURSION
 
 =pod
@@ -179,13 +179,18 @@ my $Authentication = undef;
 ## #######################################################################
 ## Create a new harness based on the given sub-class of Benchmark::Harness
 sub new {
+    # Ok, one of these days Glenn will figure out how to manage Perl static/function/methods/subs/variance . . .
+    # It just doesn't look like this is that day - gdw.2004-01-13
+    my $context = $_[0];
+    my $class = ($context =~ m/^Benchmark\:\:Harness/ ? shift : 'Benchmark::Harness');
+
     my $self = bless {
             '_startTime' => time()
            ,'_latestTime' => ''
            ,'_latestPackage' => ''
            ,'_latestFilename' => ''
            ,'_latestLine' => ''
-        }, shift;
+        }, $class;
     my $authentication = shift;
 
     my ($harnessClass, $harnessParameters) = ($_[0] =~ m/^([^(]+)(?:\(([^)]*)\))?$/);
