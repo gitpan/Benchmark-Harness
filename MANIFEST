@@ -1,0 +1,15 @@
+MANIFEST
+Makefile.PL
+README
+CHANGES
+prereqinst.pl
+lib/Benchmark/Harness.pm
+lib/Benchmark/Harness/MemoryUsage.pm
+lib/Benchmark/Harness/Trace.pm
+t/t.t
+t/benchmarkTrace.xml
+t/lib/TestServer.pm
+xsd/BenchmarkHarnessMemoryUsage.xsd
+xsd/BenchmarkHarnessTrace.xsd
+test.pl
+META.yml                                 Module meta-data (added by MakeMaker)
