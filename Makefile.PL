@@ -1,5 +1,6 @@
 
 # $Name:  $
+use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
 
 use ExtUtils::MakeMaker;
 
@@ -14,6 +15,7 @@ sub new {
 
 my $prereq_pm = { 'Devel::Peek' => 1.01
                  ,'Devel::Size' => 0.58
+                 ,'Time::HiRes' => 1.59
                 };
 if ( $^O eq 'MSWin32' ) {
     $prereq_pm->{'Win32::Process::Info'} = 1.002;
@@ -22,7 +24,7 @@ if ( $^O eq 'MSWin32' ) {
 
 WriteMakefile(
     'NAME'	=> 'Benchmark::Harness',
-    'VERSION_FROM' => "lib/Benchmark/Harness.pm", # finds $VERSION
+    'VERSION_FROM' => "Harness.pm", # finds $VERSION
     # test.pl uses this hash, also, to poll all modules we depend on
     'PREREQ_PM' => $prereq_pm,
     ($] ge '5.005') ? (

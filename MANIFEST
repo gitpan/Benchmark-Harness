@@ -3,13 +3,14 @@ Makefile.PL
 README
 CHANGES
 prereqinst.pl
-lib/Benchmark/Harness.pm
-lib/Benchmark/Harness/MemoryUsage.pm
-lib/Benchmark/Harness/Trace.pm
+Harness.pm
+Harness/Trace.pm
+Harness/TraceHighRes.pm
 t/t.t
-t/benchmarkTrace.xml
+t/benchmark.Trace.xml
+t/benchmark.TraceHighRes.xml
 t/lib/TestServer.pm
-xsd/BenchmarkHarnessMemoryUsage.xsd
-xsd/BenchmarkHarnessTrace.xsd
+xsd/Trace.xsd
+xsd/TraceHighRes.xsd
 test.pl
 META.yml                                 Module meta-data (added by MakeMaker)
