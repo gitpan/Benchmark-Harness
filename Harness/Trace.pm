@@ -4,7 +4,7 @@ package Benchmark::Harness::Trace;
 use base qw(Benchmark::Harness);
 use Benchmark::Harness::Constants;
 
-use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
 
 ### ###########################################################################
 sub Initialize {
@@ -78,9 +78,40 @@ use strict;
 
 =head2 SYNOPSIS
 
-(stay tuned . . . )
+A harness that records the time and sequence, and simple memory usage
+of your program, at entries and exits of functions in the target program.
 
-=head2 Impact
+See Benchmark::Harness, "Parameters", for instruction on how to configure
+a test harness, and use 'Trace' as your harness name.
+
+=head2 REPORT
+
+The report is an XML file with schema you can find in xsd/Trace.xsd,
+or at http://schemas.benchmark-harness.org/Trace.xsd
+
+For example:
+
+  <Trace see-Benchmark::Harness-for-attributes-here>
+    <T _i="0" _m="E" u="0.234375" m="0" s="0.109375" t="1"/>
+    <T _i="2" _m="E" u="0.234375" m="0" s="0.109375" t="1"/>
+    <T _i="2" _m="X" u="0.234375" m="0" s="0.109375" t="1"/>
+    <T _i="0" _m="X" u="0.234375" m="0" s="0.109375" t="1"/>
+  </Trace>
+
+The @_i attribute is described in L<Benchmark::Harness|Benchmark::Harness>.
+It identifies the name of the function being traced.
+
+@_m will be 'E' or 'X', for entry or exit from the function.
+
+@u is the user memory use at that moment, in megabytes.
+
+@m is virtual memory size, in megabytes.
+
+@s is kernal memory size, in megabytes.
+
+@t is time since the Harness started, in seconds.
+
+=head2 IMPACT
 
 =over 8
 
@@ -148,9 +179,11 @@ These process parameters are also available via this code, but are not transferr
 
 =item1 Linux
 
-
-
 =back
+
+=head2 SEE ALSO
+
+L<Benchmark::Harness|Benchmark::Harness>
 
 =cut
 

@@ -2,8 +2,9 @@ use strict;
 package Benchmark::Harness::Handler;
 use Benchmark::Harness::Constants;
 use XML::Quote;
+use overload;
 
-use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
+use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
 
 ### ###########################################################################
 # USAGE: new Benchmark::Harness::Handler(

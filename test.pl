@@ -93,7 +93,7 @@ for my $handler ( @Tests ) {
 }
     # Glenn's easy viewing.
     if ( ($^O eq 'MSWin32') && ($ENV{HSP_USERNAME} eq 'GlennWood') ) {
-        system("t\\benchmark.$Tests[0].temp.xml");
+        #system("t\\benchmark.$Tests[0].temp.xml");
     }
 
 __END__

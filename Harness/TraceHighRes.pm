@@ -4,7 +4,7 @@ use base qw(Benchmark::Harness::Trace);
 use Benchmark::Harness;
 use Benchmark::Harness::Constants;
 
-use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
+use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
 
 ### ###########################################################################
 sub Initialize {

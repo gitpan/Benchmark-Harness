@@ -3,7 +3,7 @@ use Benchmark::Harness;
 package Benchmark::Harness::ValuesHighRes;
 use base qw(Benchmark::Harness::Values);
 use Benchmark::Harness::Constants;
-use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
+use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
 
 package Benchmark::Harness::Handler::ValuesHighRes;
 use base qw(Benchmark::Harness::Handler::Values);
@@ -15,12 +15,12 @@ use Time::HiRes;
 
 =head2 SYNOPSIS
 
-(stay tuned . . . )
+High resolution timing combined with Benchmark::Harness::Values.
 
 =head2 Impact
 
 
-This produces a slightly larger XML report than the Trace harness, since HighRes times consume more digits than low-res ones.
+This produces a slightly larger XML report than the Values harness, since HighRes times consume more digits than low-res ones.
 This report will be about 20% larger than that of Trace.
 
 =over 8

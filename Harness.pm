@@ -2,9 +2,10 @@ use strict;
 package Benchmark::Harness;
 use Benchmark::Harness::Constants;
 
-use vars qw($CVS_VERSION $IS_HARNESS_MODE);
-$CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
-$IS_HARNESS_MODE = 0; ## PREVENT INCESTOUS RECURSION
+use vars qw($VERSION $VERSION $IS_HARNESS_MODE);
+$VERSION = '1.11';
+$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$IS_HARNESS_MODE = 0; ## PREVENT INTER-MODAL RECURSION
 
 =pod
 
@@ -15,20 +16,7 @@ $IS_HARNESS_MODE = 0; ## PREVENT INCESTOUS RECURSION
 B<Connecting Benchmark::Harness to your Perl application can pose a serious
 security/privacy risk to your application and the host computer it is running on.>
 
-Under certain circumstances, the Harness allows an outside user to interject any
-Perl process at any point in your host application. This can be done without access
-to any of your source code or programs, tunnelling through any enveloping security
-or privacy protections. The hacker can subvert any programmed security feature and,
-with a little more effort, insert any Perl script into the context of your program,
-and onto your host computer, at any point in your program.
-
-No matter how innocuous your application is, through Benchmark::Harness it can be
-made into a gateway to compromise the integrity of your entire host computer.
-
-For this reason, basic authentication is built into Benchmark::Harness by default.
-There is no default password. You must activate a user id and password in order
-to make Benchmark::Harness work straight out of the box.
-See the Authenticate() subroutine here in Benchmark::Harness to set up your initial userid/password.
+See L<CAVEAT|caveat>, below
 
 B<I<DO NOT MAINTAIN A PERMANENT HOOK FOR Benchmark::Harness
 IN YOUR PERL APPLICATION FOR ANY REASON!>>
@@ -245,7 +233,7 @@ sub harnessPrintReportHeader {
     my $tm = localtime;
     my $tagName = ref($self); $tagName =~ s{^.*::([^:]+)$}{$1};# $tagName =~ s/::/:/g;
     my $version = $self->VERSION;
-    print $fh "<$tagName ".$self->xmlHeaders." n='$0' v='$version' V='$CVS_VERSION' tm='$tm' pid='$$' userid='$<,$>' os='$^O'>";
+    print $fh "<$tagName ".$self->xmlHeaders." n='$0' v='$version' V='$VERSION' tm='$tm' pid='$$' userid='$<,$>' os='$^O'>";
     map {
         my $modifiers = $_->[HNDLR_MODIFIERS] || '';
         print $fh "<ID id='$_->[HNDLR_ID]' name='$_->[HNDLR_NAME]' type='method' package='$_->[HNDLR_PACKAGE]' modifiers='$modifiers'/>"
@@ -422,26 +410,25 @@ sub GenerateEvents {
 
 __END__
 
-=head2 CHANGES
+=head1 CAVEAT
 
-$Log: Harness.pm,v $
-Revision 1.2  2004/11/04 08:24:00  Administrator
-Benchmark::Harness v1.08
+Under certain circumstances, the Harness allows an outside user to interject any
+Perl process at any point in your host application. This can be done without access
+to any of your source code or programs, tunnelling through any enveloping security
+or privacy protections. The hacker can subvert any programmed security feature and,
+with a little more effort, insert any Perl script into the context of your program,
+and onto your host computer, at any point in your program.
 
-Revision 1.1  2004/11/02 07:51:41  Administrator
-Contact Info
+No matter how innocuous your application is, through Benchmark::Harness it can be
+made into a gateway to compromise the integrity of your entire host computer.
 
-Revision 1.5  2004/09/29 22:11:33  woodg
-reoganized - into Benchmark/Harness/(Trace|MemoryUsage)
+For this reason, basic authentication is built into Benchmark::Harness by default.
+There is no default password. You must activate a user id and password in order
+to make Benchmark::Harness work straight out of the box.
+See the Authenticate() subroutine here in Benchmark::Harness to set up your initial userid/password.
 
-Revision 1.4  2004/09/29 21:17:20  woodg
-Trace, and wildcard method selection!
-
-Revision 1.3  2004/09/03 23:43:46  woodg
-Benchmark::Harness sub-classing
-
-Revision 1.2  2004/09/03 19:55:29  woodg
-some POD
+B<I<DO NOT MAINTAIN A PERMANENT HOOK FOR Benchmark::Harness
+IN YOUR PERL APPLICATION FOR ANY REASON!>>
 
 =head1 AUTHOR
 
