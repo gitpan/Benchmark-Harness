@@ -2,7 +2,9 @@ use strict;
 use Benchmark::Harness;
 package Benchmark::Harness::Trace;
 use base qw(Benchmark::Harness);
-use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
+use Benchmark::Harness::Constants;
+
+use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
 
 ### ###########################################################################
 sub Initialize {
@@ -25,16 +27,16 @@ if ( $^O eq 'MSWin32' ) {
   eval 'use Win32::Process::Info';
   $self->{procInfo} = Win32::Process::Info->new(undef,'NT');
 
-  *Benchmark::Harness::Handler::Trace::reportProcessInfo =
+  *Benchmark::Harness::Handler::Trace::reportTraceInfo =
       sub {
-            my $self = shift;
-            my $proc = ($self->[Benchmark::Harness::Handler::HARNESS]->{procInfo}->GetProcInfo({no_user_info=>1},$$))[0];
-            Benchmark::Harness::Handler::reportProcessInfo($self,
+            my $slf = shift;
+            my $proc = ($slf->[HNDLR_HARNESS]->{procInfo}->GetProcInfo({no_user_info=>1},$$))[0];
+            return Benchmark::Harness::Handler::reportTraceInfo($slf,
                 {
-                     'm' => $proc->{WorkingSetSize}/1024
-                    ,'s' => $proc->{KernelModeTime} || '0'
-                    ,'t' => (time() - $self->[Benchmark::Harness::Handler::HARNESS]->{_startTime})
-                    ,'u' => $proc->{UserModeTime}
+                    'm' => $proc->{WorkingSetSize}/1024,
+                    's' => $proc->{KernelModeTime} || '0',
+                    't' => (time() - $slf->[HNDLR_HARNESS]->{_startTime}),
+                    'u' => $proc->{UserModeTime},
                 }
                 ,@_
               );
@@ -44,18 +46,18 @@ else { # Assume Linux, for now . . .
 
   $self->{XmlTempFilename} = '/tmp/benchmark_harness';
 
-  *Benchmark::Harness::Handler::Trace::reportProcessInfo =
+  *Benchmark::Harness::Handler::Trace::reportTraceInfo =
       sub {
-          my $self = shift;
+          my $slf = shift;
 
           my $ps = `ps -l -p $$`;
           my ($pMem, $pTimeH, $pTimeM, $pTimeS) = ($ps =~ m{CMD(?:\s+\S+){9}\s+(\S+)(?:\s+\S+){2}\s+(\d+):(\d+):(\d+)}s);
           my $pTime = ( $pTimeH*60 + $pTimeM*60 ) + $pTimeS;
 
-          Benchmark::Harness::Handler::reportProcessInfo($self,
+          return Benchmark::Harness::Handler::reportTraceInfo($slf,
             {
                'm' => $pMem
-              ,'t' => (time() - $self->[Benchmark::Harness::Handler::HARNESS]->{_startTime})
+              ,'t' => (time() - $slf->[HNDLR_HARNESS]->{_startTime})
               ,'u' => $pTime
             }
             ,@_
@@ -68,6 +70,7 @@ else { # Assume Linux, for now . . .
 package Benchmark::Harness::Handler::Trace;
 use base qw(Benchmark::Harness::Handler);
 use strict;
+
 
 =pod
 
@@ -152,16 +155,21 @@ These process parameters are also available via this code, but are not transferr
 =cut
 
 ### ###########################################################################
+sub reportValueInfo {
+    return Benchmark::Harness::Handler::reportValueInfo(@_);
+}
+
+### ###########################################################################
 sub OnSubEntry {
   my $self = shift;
-  $self->reportProcessInfo();#(shift, caller(1));
+  $self->reportTraceInfo();#(shift, caller(1));
   return @_; # return the input arguments unchanged.
 }
 
 ### ###########################################################################
 sub OnSubExit {
   my $self = shift;
-  $self->reportProcessInfo();#(shift, caller(1));
+  $self->reportTraceInfo();#(shift, caller(1));
   return @_; # return the input arguments unchanged.
 }
 

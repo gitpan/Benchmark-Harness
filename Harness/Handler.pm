@@ -1,19 +1,9 @@
-package Benchmark::Harness::Handler;
 use strict;
-use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
-    use constant {
-        ID          =>  0,
-        HARNESS     =>  1,
-        MODIFIERS   =>  2,
-        NAME        =>  3,
-        PACKAGE     =>  4,
-        ORIGMETHOD  =>  5,
-        HANDLED     =>  6,
-        REPORT      =>  7,
-        FILTER      =>  8,
-        FILTERSTART =>  9,
-        PROCESSIDX  => 10,  # used by TraceHighRes
-    };
+package Benchmark::Harness::Handler;
+use Benchmark::Harness::Constants;
+use XML::Quote;
+
+use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
 
 ### ###########################################################################
 # USAGE: new Benchmark::Harness::Handler(
@@ -48,76 +38,118 @@ sub new {
 #                                 the first event, then each filter-th one thereafter.
 sub Attach {
     my ($traceSubr) = @_;
-    my ($modifiers, $pckg, $method) = ($traceSubr->[MODIFIERS], $traceSubr->[PACKAGE], $traceSubr->[NAME]);
+    my ($modifiers, $pckg, $method) = ($traceSubr->[HNDLR_MODIFIERS], $traceSubr->[HNDLR_PACKAGE], $traceSubr->[HNDLR_NAME]);
 
-    return if ( $modifiers eq '0' ); # (0) means do not harness . . .
+    return if ( defined $modifiers && ($modifiers eq '0') ); # (0) means do not harness . . .
 
     # Splitting handler parameters by '|' makes it easier to include them in a qw()
-    my ($filter, $filterStart) = split /\s*\|\s*/, $modifiers;
+    my ($filter, $filterStart) = (split /\s*\|\s*/, $modifiers) if defined $modifiers;
 
-    $traceSubr->[ORIGMETHOD] = \&{"$pckg\:\:$method"};
+    $traceSubr->[HNDLR_ORIGMETHOD] = \&{"$pckg\:\:$method"};
 
     my $newMethod;
     if ( defined $filter ) {
 
         $filter = $filter || 1;
         $filterStart = $filterStart || 1;
-        $traceSubr->[FILTER] = $filter;
-        $traceSubr->[FILTERSTART] = $filterStart;
+        $traceSubr->[HNDLR_FILTER] = $filter;
+        $traceSubr->[HNDLR_FILTERSTART] = $filterStart;
 
+###  ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## NEW METHOD ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
         $newMethod = sub  {
-            if ( $traceSubr->[FILTERSTART] ) {
-                goto $traceSubr->[ORIGMETHOD] if ( --$traceSubr->[FILTERSTART] );
-                $traceSubr->[FILTERSTART] = $traceSubr->[FILTER];
+            if ( $traceSubr->[HNDLR_FILTERSTART] ) {
+                goto $traceSubr->[HNDLR_ORIGMETHOD] if ( --$traceSubr->[HNDLR_FILTERSTART] );
+                $traceSubr->[HNDLR_FILTERSTART] = $traceSubr->[HNDLR_FILTER];
             }
-            my @newArgs = $traceSubr->OnSubEntry(@_);
-            $traceSubr->harnessPrintReport('E',$traceSubr);
+            my @newArgs;
+            unless ( $Benchmark::Harness::IS_HARNESS_MODE ) {
+                $Benchmark::Harness::IS_HARNESS_MODE += 1;
+                @newArgs = $traceSubr->OnSubEntry(@_);
+                $traceSubr->harnessPrintReport('E',$traceSubr);
+                $Benchmark::Harness::IS_HARNESS_MODE -= 1;
+            }
             if (wantarray) {
-                my @answer = $traceSubr->[ORIGMETHOD](@_);
-                my $newAnswer = $traceSubr->OnSubExit(\@answer);
-                $traceSubr->harnessPrintReport('X',$traceSubr);
+                my @answer = $traceSubr->[HNDLR_ORIGMETHOD](@_);
+                my $newAnswer;
+                unless ( $Benchmark::Harness::IS_HARNESS_MODE ) {
+                    $Benchmark::Harness::IS_HARNESS_MODE += 1;
+                    $newAnswer = $traceSubr->OnSubExit(\@answer);
+                    $traceSubr->harnessPrintReport('X',$traceSubr);
+                    $Benchmark::Harness::IS_HARNESS_MODE -= 1;
+                }
                 return @answer;
             } else {
-                my $answer = $traceSubr->[ORIGMETHOD](@_);
-                my $newAnswer = scalar $traceSubr->OnSubExit($answer);
-                $traceSubr->harnessPrintReport('X',$traceSubr);
+                my $answer;
+                my $newAnswer;
+                unless ( $Benchmark::Harness::IS_HARNESS_MODE ) {
+                    $Benchmark::Harness::IS_HARNESS_MODE += 1;
+                    $answer = $traceSubr->[HNDLR_ORIGMETHOD](@_);
+                    $newAnswer = scalar $traceSubr->OnSubExit($answer);
+                    $traceSubr->harnessPrintReport('X',$traceSubr);
+                    $Benchmark::Harness::IS_HARNESS_MODE -= 1;
+                }
                 return $answer;
             }
         };
+###  ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+### ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
     } else {
+###  ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## NEW METHOD ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
         $newMethod = sub {
-            my @newArgs = $traceSubr->OnSubEntry(@_);
-            $traceSubr->harnessPrintReport('E',$traceSubr);
+            my @newArgs;
+            unless ( $Benchmark::Harness::IS_HARNESS_MODE ) {
+                $Benchmark::Harness::IS_HARNESS_MODE += 1;
+                @newArgs = $traceSubr->OnSubEntry(@_);
+                $traceSubr->harnessPrintReport('E',$traceSubr);
+                $Benchmark::Harness::IS_HARNESS_MODE -= 1;
+            }
             if (wantarray) {
-                my @answer = $traceSubr->[ORIGMETHOD](@_);
-                my $newAnswer = $traceSubr->OnSubExit(\@answer);
-                $traceSubr->harnessPrintReport('X',$traceSubr);
+                my @answer = $traceSubr->[HNDLR_ORIGMETHOD](@_);
+                my $newAnswer;
+                unless ( $Benchmark::Harness::IS_HARNESS_MODE ) {
+                    $Benchmark::Harness::IS_HARNESS_MODE += 1;
+                    $newAnswer = $traceSubr->OnSubExit(\@answer);
+                    $traceSubr->harnessPrintReport('X',$traceSubr);
+                    $Benchmark::Harness::IS_HARNESS_MODE -= 1;
+                }
                 return @answer;
             } else {
-                my $answer = $traceSubr->[ORIGMETHOD](@_);
-                my $newAnswer = scalar $traceSubr->OnSubExit($answer);
-                $traceSubr->harnessPrintReport('X',$traceSubr);
+                my $answer = $traceSubr->[HNDLR_ORIGMETHOD](@_);
+                my $newAnswer;
+                unless ( $Benchmark::Harness::IS_HARNESS_MODE ) {
+                    $Benchmark::Harness::IS_HARNESS_MODE += 1;
+                    $newAnswer = scalar $traceSubr->OnSubExit($answer);
+                    $traceSubr->harnessPrintReport('X',$traceSubr);
+                    $Benchmark::Harness::IS_HARNESS_MODE -= 1;
+                }
                 return $answer;
             }
         };
+###  ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+### ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
     }
+###  ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## NEW METHOD ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+    no warnings; # We are redefining a method, so don't warn all that!
     eval "\*$pckg\:\:$method = \$newMethod";
-    $traceSubr->[HANDLED] = 1;
+    $traceSubr->[HNDLR_HANDLED] = 1;
 }
 
 sub Detach {
     my ($traceSubr) = @_;
-    return unless $traceSubr->[HANDLED];
-    my ($pckg, $method, $origMethod) = ($traceSubr->[PACKAGE],$traceSubr->[NAME],$traceSubr->[ORIGMETHOD]);
+    return unless $traceSubr->[HNDLR_HANDLED];
+    my ($pckg, $method, $origMethod) = ($traceSubr->[HNDLR_PACKAGE],$traceSubr->[HNDLR_NAME],$traceSubr->[HNDLR_ORIGMETHOD]);
+    no warnings; # We are redefining a method, so don't warn all that!
     eval "\*$pckg\:\:$method = \$origMethod";
-
 }
 
 ### ###########################################################################
-sub reportProcessInfo {
+sub reportTraceInfo {
     my $self = shift;
-    $self->[REPORT] = [undef,{},undef,undef] unless defined $self->[REPORT];
-    my $rpt = $self->[REPORT];
+    $self->[HNDLR_REPORT] = [undef,{},undef,undef] unless defined $self->[HNDLR_REPORT];
+    my $rpt = $self->[HNDLR_REPORT];
 
     for ( @_ ) {
         my $typ = ref($_);
@@ -132,8 +164,10 @@ sub reportProcessInfo {
                 $rpt->[2] = [] unless defined $rpt->[2];
                 push @{$rpt->[2]}, @$_;
             }
-            else {
+            elsif ( $typ eq 'SCALAR' ) {
                 $rpt->[3] .= $$_;
+            } else {
+                $rpt->[3] .= $_;
             }
         } else {
                 $rpt->[0] = $_;
@@ -142,29 +176,84 @@ sub reportProcessInfo {
     return $self;
 }
 
+
 ### ###########################################################################
+sub reportValueInfo {
+    my $self = shift;
+
+    my $val = ['V',{},undef,undef];
+    for ( @_ ) {
+        my $typ = ref($_);
+        if ( $typ ) {
+            if ( $typ eq 'HASH' ) {
+                my $hsh = $val->[1];
+                for my $nam ( keys %$_ ) {
+                    # I figure this is the quickest way to get both
+                    # the stringified (if overloaded) and type of
+                    # the value in this hash-entry.
+                    my $_val = $_->{$nam};
+                    my $_ref = ref($_val);
+                    if ( $_ref ) {
+                        if ( my $stringify = overload::Method($_val,'""') ) {
+                            $hsh->{$nam} = $stringify->($_val);
+                            $hsh->{_t} = ref($_val);
+                                #unless defined $hsh->{_t};
+                        } else {
+                            $hsh->{$nam} = $_val;
+                        }
+                    } else {
+                        $hsh->{$nam} = $_val;
+                    }
+                }
+            }
+            elsif ( $typ eq 'ARRAY' ) {
+                $val->[2] = [] unless defined $val->[2];
+                push @{$val->[2]}, @$_;
+            }
+            elsif ( $typ eq 'SCALAR' ) {
+                $val->[3] .= $$_;
+            }
+            else {
+                $val->[3] .= "$_"; # will stringify if overloaded 
+            }
+        } else {
+                $val->[0] = $_;
+        }
+    }
+
+    $self->[HNDLR_REPORT] = [undef,{},[],undef] unless defined $self->[HNDLR_REPORT];
+    my $rpt = $self->[HNDLR_REPORT];
+    push @{$rpt->[2]}, $val;
+    return $val;
+}
+
+### ###########################################################################
+### harnessPrintReport ( mode, event-handler, [ report-element ] )
 sub harnessPrintReport {
     my $self = shift;
     return unless ref($self);
-    my $harness = $self->[HARNESS];
-    my ($mode, $trace) = @_;
+    my $harness = $self->[HNDLR_HARNESS];
 
-    my $rpt = $self->[REPORT];
+    my $mode = shift;
+    my $trace = shift;
+    my $rpt = shift || $self->[HNDLR_REPORT];
+
     return unless $rpt;
 
     my $fh = $harness->{_outFH};
     return unless $fh;
 
-    print $fh '<'.(defined($rpt->[0])?$rpt->[0]:'T')." _i='$trace->[ID]' _m='$mode'";
+    print $fh '<'.(defined($rpt->[0])?$rpt->[0]:'T');
+    print $fh " _i='$trace->[HNDLR_ID]' _m='$mode'" if $mode;
     my $closeTag = '/>';
 
     my $hsh = $rpt->[1];
-    map { print $fh " $_='$hsh->{$_}'" } keys %$hsh;
+    map { print $fh " $_='".xml_quote($hsh->{$_})."'" if defined $hsh->{$_} } keys %$hsh;
 
     if ( defined $rpt->[2] ) {
         print $fh '>'; $closeTag = '</'.(defined($rpt->[0])?$rpt->[0]:'T').'>';
         for ( @{$rpt->[2]} ) {
-
+            $self->harnessPrintReport(undef, undef, $_);
         }
     }
 
@@ -174,7 +263,7 @@ sub harnessPrintReport {
     }
 
     print $fh $closeTag;
-    $self->[REPORT] = undef;
+    $self->[HNDLR_REPORT] = undef;
 }
 
 ### ###########################################################################
@@ -191,6 +280,126 @@ sub OnSubEntry {
 sub OnSubExit {
     my $self = shift;
     return @_;
+}
+
+
+### ###########################################################################
+# USAGE: Harness::Variables(list of any variable(s));
+sub Variables {
+  my $self = ref($_[0])?shift:$Benchmark::Harness::Harness;
+  return unless ref($self);
+  return unless $self->{_outFH};
+}
+
+
+### ###########################################################################
+# USAGE: Harness::Arguments(@_);
+sub ArgumentsXXX {
+  my $self = shift;
+  return $self unless ref($self);
+  return $self unless $self->{_outFH};
+
+  $self->_PrintT('-Arguments', caller(1));
+
+  my $i = 1;
+  for ( @_ ) {
+    my $obj = ref($_)?$_:\$_;
+    my ($nm, $sz) = (ref($_), Devel::Size::total_size($_));
+    $nm = $i unless $nm; $i += 1;
+    $self->print("<V n='$nm' s='$sz'/>");
+  }
+  $self->_PrintT_();
+  return $self;
+}
+
+### ###########################################################################
+# USAGE: Harness::NamedObject($name, $self); - where $self is a blessed reference.
+sub NamedObjects {
+  my $self = shift;
+  return $self unless ref($self);
+
+    my %objects = @_;
+    for ( keys %objects ) {
+        $self->reportValueInfo(
+                    {   'n' => $_,
+                        'v' => $objects{$_},
+                    }
+                );
+    }
+    return $self;
+}
+
+### ###########################################################################
+# USAGE: Harness::Object($obj); - where $obj is an object reference.
+sub Object {
+  my $self = shift;
+  return $self unless ref($self);
+  my $pckg = $_[0];
+
+  my $pckgName = "$pckg";
+  $pckgName =~ s{=?(ARRAY|HASH|SCALAR).*$}{};
+  my $pckgType = $1;
+  $self->_PrintT("-$pckgType $pckgName", caller(1));
+  $self->OnObject(@_);
+
+  $self->_PrintT_();
+  return $self;
+}
+
+### ###########################################################################
+# USAGE: Benchmark::MemoryUsage::MethodReturn( $pckg )
+#     Print useful information about the given object ($pckg)
+sub OnObject {
+  my $self = shift;
+  my $obj = shift;
+
+  my $objName = "$obj";
+  $objName =~ s{=?([A-Z]+).*$}{};#s{=?(ARRAY|HASH|SCALAR|CODE).*$}{};
+  my $objType = $1 || '';
+
+  if ( $objType eq 'HASH' ) {
+    my $i = 0;
+    for ( keys %$obj ) {
+      my $obj = ref($_)?$_:\$_;
+      my ($nm) = ($_);
+      $nm = $i unless $nm; $i += 1;
+      $self->print("<V n='$nm'/>");
+    }
+  } elsif ( $objType eq 'ARRAY' ) {
+        my $i = 0;
+        for ( @$obj ) {
+        my ($nm) = ($i);
+        $i += 1;
+        $self->print("<V n='$nm'/>");
+        last if ( ++$i == 20 );
+        if ( scalar(@$objType) > 20 ) {
+            $self->print("<G n='".scalar(@_)."'/>");
+        };
+    }
+  } elsif ( $objType eq 'SCALAR' ) {
+      $self->print("<V>$$obj</V>");
+  } else {
+      $self->print("<V t='$objType'>$obj</V>");
+  }
+  return $self;
+}
+
+### ###########################################################################
+# USAGE: Harness::NamedVariables('name1' => $variable1 [, 'name1' => $variable2 ])
+sub NamedVariables {
+  my $self = ref($_[0])?shift:$Benchmark::Harness::Harness;
+  return $self unless ref($self);
+
+  $self->_PrintT(undef, caller(1));
+
+  my $i = 1;
+  while ( @_ ) {
+    my ($nm, $sz) = (shift, Devel::Size::total_size(shift));
+    $nm = $i unless $nm; $i += 1;
+    $self->print("<V n='$nm' s='$sz'/>");
+  }
+  $self->_PrintT_();
+  return $self;
 }
 
 1;

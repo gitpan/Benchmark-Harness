@@ -1,9 +1,10 @@
-package Benchmark::Harness;
-use Benchmark::Harness::Handler;
 use strict;
-use vars qw($VERSION $CVS_VERSION);
-$VERSION = '1.09';
+package Benchmark::Harness;
+use Benchmark::Harness::Constants;
+
+use vars qw($CVS_VERSION $IS_HARNESS_MODE);
 $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$IS_HARNESS_MODE = 0; ## PREVENT INCESTOUS RECURSION
 
 =pod
 
@@ -202,9 +203,9 @@ sub new {
     my ($harnessClass, $harnessParameters) = ($_[0] =~ m/^([^(]+)(?:\(([^)]*)\))?$/);
     $harnessClass = $_[0] unless $harnessClass; shift;
 
-    bless $self, 'Benchmark::Harness::'.$harnessClass;
+    my @harnessClasses = split /\|/,$harnessClass;
+    bless $self, 'Benchmark::Harness::'.$harnessClasses[0];
     eval 'use '.ref($self); die $@ if $@;
-
     my @harnessParameters = split /\|/, $harnessParameters;
     return $self unless $self->Authenticate($authentication); # pretend we're working, but we're not.
 
@@ -244,8 +245,11 @@ sub harnessPrintReportHeader {
     my $tm = localtime;
     my $tagName = ref($self); $tagName =~ s{^.*::([^:]+)$}{$1};# $tagName =~ s/::/:/g;
     my $version = $self->VERSION;
-    print $fh "<$tagName ".$self->xmlHeaders." n='$0' v='$version' V='$VERSION' tm='$tm' pid='$$' userid='$<,$>' os='$^O'>";
-    map {print $fh "<ID id='$_->[Benchmark::Harness::Handler::ID]' name='$_->[Benchmark::Harness::Handler::NAME]' type='method' package='$_->[Benchmark::Harness::Handler::PACKAGE]' modifiers='$_->[Benchmark::Harness::Handler::MODIFIERS]'/>"}
+    print $fh "<$tagName ".$self->xmlHeaders." n='$0' v='$version' V='$CVS_VERSION' tm='$tm' pid='$$' userid='$<,$>' os='$^O'>";
+    map {
+        my $modifiers = $_->[HNDLR_MODIFIERS] || '';
+        print $fh "<ID id='$_->[HNDLR_ID]' name='$_->[HNDLR_NAME]' type='method' package='$_->[HNDLR_PACKAGE]' modifiers='$modifiers'/>"
+    }
         @{$self->{EventList}};
 }
 
@@ -275,7 +279,7 @@ sub close {
     close $fh;
     delete $self->{_outFH};
 
-    map { $_->Detach() } @{$self->{EventList}};
+    map { $_->Detach() if defined $_ } @{$self->{EventList}};
     delete $self->{EventList};
     return $self;
 }
@@ -289,8 +293,8 @@ DESTROY {
 sub FindHandler {
     my ($self, $pckg, $subName) = @_;
     for ( @{$self->{EventList}} ) {
-        if ( $_->[Benchmark::Harness::Handler::NAME] eq $subName
-          && $_->[Benchmark::Harness::Handler::PACKAGE] eq $pckg
+        if ( $_->[HNDLR_NAME] eq $subName
+          && $_->[HNDLR_PACKAGE] eq $pckg
         ) {
             return $_;
         }
@@ -330,129 +334,6 @@ sub harnessPrintReport {
 
     print $fh $closeTag;
     $self->{report} = undef;
-}
-
-### ###########################################################################
-# USAGE: Harness::Variables(list of any variable(s));
-sub Variables {
-  my $self = ref($_[0])?shift:$Benchmark::Harness::Harness;
-  return unless ref($self);
-  return unless $self->{_outFH};
-}
-
-
-### ###########################################################################
-# USAGE: Harness::Arguments(@_);
-sub Arguments {
-  my $self = ref($_[0])?shift:$Benchmark::Harness::Harness;
-  return $self unless ref($self);
-  return $self unless $self->{_outFH};
-
-  $self->_PrintT('-Arguments', caller(1));
-
-  my $i = 1;
-  for ( @_ ) {
-    my $obj = ref($_)?$_:\$_;
-    my ($nm, $sz) = (ref($_), Devel::Size::total_size($_));
-    $nm = $i unless $nm; $i += 1;
-    $self->print("<V n='$nm' s='$sz'/>");
-  }
-  $self->_PrintT_();
-  return $self;
-}
-
-### ###########################################################################
-# USAGE: Harness::NamedObject($name, $self); - where $self is a blessed reference.
-sub NamedObject {
-  my $self = ref($_[0])?shift:$Benchmark::Harness::Harness;
-  return $self unless ref($self);
-  return $self unless $self->{_outFH};
-  my $name = shift;
-  my $obj = $_[0];
-
-  my $objName = "$obj";
-  $objName =~ s{=?(ARRAY|HASH|SCALAR).*$}{};
-  my $objType = $1;
-  $self->_PrintT($name, caller(1));
-  $self->OnObject(@_);
-
-  $self->_PrintT_();
-  return $self;
-}
-
-### ###########################################################################
-# USAGE: Harness::Object($self); - where $self is a blessed reference.
-sub Object {
-  my $self = ref($_[0])?shift:$Benchmark::Harness::Harness;
-  return $self unless ref($self);
-  return $self unless $self->{_outFH};
-  my $pckg = $_[0];
-
-  my $pckgName = "$pckg";
-  $pckgName =~ s{=?(ARRAY|HASH|SCALAR).*$}{};
-  my $pckgType = $1;
-  $self->_PrintT("-$pckgType $pckgName", caller(1));
-  $self->OnObject(@_);
-
-  $self->_PrintT_();
-  return $self;
-}
-
-### ###########################################################################
-# USAGE: Benchmark::MemoryUsage::MethodReturn( $pckg )
-#     Print useful information about the given object ($pckg)
-sub OnObject {
-  my $self = shift;
-  my $obj = shift;
-
-  my $objName = "$obj";
-  $objName =~ s{=?([A-Z]+).*$}{};#s{=?(ARRAY|HASH|SCALAR|CODE).*$}{};
-  my $objType = $1 || '';
-
-  if ( $objType eq 'HASH' ) {
-    my $i = 0;
-    for ( keys %$obj ) {
-      my $obj = ref($_)?$_:\$_;
-      my ($nm) = ($_);
-      $nm = $i unless $nm; $i += 1;
-      $self->print("<V n='$nm'/>");
-    }
-  } elsif ( $objType eq 'ARRAY' ) {
-        my $i = 0;
-        for ( @$obj ) {
-        my ($nm) = ($i);
-        $i += 1;
-        $self->print("<V n='$nm'/>");
-        last if ( ++$i == 20 );
-        if ( scalar(@$objType) > 20 ) {
-            $self->print("<G n='".scalar(@_)."'/>");
-        };
-    }
-  } elsif ( $objType eq 'SCALAR' ) {
-      $self->print("<V>$$obj</V>");
-  } else {
-      $self->print("<V t='$objType'>$obj</V>");
-  }
-  return $self;
-}
-
-### ###########################################################################
-# USAGE: Harness::NamedVariables('name1' => $variable1 [, 'name1' => $variable2 ])
-sub NamedVariables {
-  my $self = ref($_[0])?shift:$Benchmark::Harness::Harness;
-  return $self unless ref($self);
-  return $self unless $self->{_outFH};
-
-  $self->_PrintT(undef, caller(1));
-
-  my $i = 1;
-  while ( @_ ) {
-    my ($nm, $sz) = (shift, Devel::Size::total_size(shift));
-    $nm = $i unless $nm; $i += 1;
-    $self->print("<V n='$nm' s='$sz'/>");
-  }
-  $self->_PrintT_();
-  return $self;
 }
 
 ### ###########################################################################

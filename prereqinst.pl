@@ -1,9 +1,9 @@
 #!perl
 # -*- perl -*-
 #
-# DO NOT EDIT, created automatically by mkprereqinst.pl
+# DO NOT EDIT, created automatically by C:/PROJECTS/lib/BUILD/mkprereqinst.pl
 
-# on Thu Nov  4 08:07:21 2004
+# on Wed Dec  8 22:48:31 2004
 #
 
 use Getopt::Long;

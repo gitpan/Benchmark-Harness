@@ -1,6 +1,6 @@
 
 # $Name:  $
-use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
+use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
 
 use ExtUtils::MakeMaker;
 
@@ -20,15 +20,16 @@ my $prereq_pm = { 'Devel::Peek' => 1.01
 if ( $^O eq 'MSWin32' ) {
     $prereq_pm->{'Win32::Process::Info'} = 1.002;
     $prereq_pm->{'Win32::OLE'} = 0.1403;
+} else { # assume Linux and *nix
+    $prereq_pm->{'Proc::ProcessTable'} = 0.39;
 }
 
 WriteMakefile(
     'NAME'	=> 'Benchmark::Harness',
-    'VERSION_FROM' => "Harness.pm", # finds $VERSION
-    # test.pl uses this hash, also, to poll all modules we depend on
+    'VERSION' => '1.10',
     'PREREQ_PM' => $prereq_pm,
     ($] ge '5.005') ? (
-                     'AUTHOR' => 'Glenn Wood http://search.cpan.org/search?mode=author&query=GLENNWOOD',
+                     'AUTHOR' => 'Glenn Wood http://search.cpan.org/~glennwood/',
                      'ABSTRACT' => 'Test/Profile harness for general purpose peeking',
                     ) : (),
 );

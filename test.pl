@@ -4,10 +4,9 @@
 use ExtUtils::testlib;
 use lib 't/lib','./blib/lib','./lib';
 use Benchmark::Harness;
-use Test::Simple tests => 4;
+use Test::Simple tests => 8;
 use strict;
 use Time::HiRes;
-use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
 
 use vars qw($AuthenticationForTesting);
 $AuthenticationForTesting = 'benchmark:password';
@@ -25,14 +24,27 @@ my $Authentication = $main::AuthenticationForTesting;
 }
 }
 
+use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+
+
+### yinst install Proc::ProcessTable -nosudo -root /home/goto/big/stats
+
+
+
+
+######################### We start with some black magic to print on failure.
+
+# Change 1..1 below to 1..last_test_to_print .
+# (It may become useful if the test is moved to ./t subdirectory.)
+
 BEGIN { select STDERR; $| = 1; select STDOUT; $| = 1; }
 
-my @Tests = qw(Trace TraceHighRes);
+my @Tests = qw(Trace TraceHighRes Values ValuesHighRes);
 for my $handler ( @Tests ) {
     my $startTime = Time::HiRes::time();
 
 # THIS ALSO SERVES AS AN EXAMPLE OF A FULLY FUNCTIONAL Benchmark::Harness CLIENT
-
+    # Trace simple looping
     my @traceParameters = qw(TestServer::Loop (0)TestServer::Max (2|1)TestServer::M.*);
     my $traceHarness = new Benchmark::Harness($AuthenticationForTesting, $handler.'(1)', @traceParameters);
     for (my $i=0; $i<10; $i++ ) {
@@ -58,8 +70,11 @@ for my $handler ( @Tests ) {
     }
     # These attributes will not be the same for all tests, many times.
     for ( qw(t f p r s m u x) ) {
-        $$old =~ s{ $_=(['"]).*?\1}{}g;
+        $$old =~ s{ $_=(['"]).*?\1}{}gs;
     }
+    
+    # Values traces will have different ARRAY(ref) strings
+    $$old =~ s{(ARRAY)\([^)]*\)}{$1}gs if ( $handler =~ m{Values} );
 
     # Compare our results with what is expected.
     if ( open TMP, "<t/benchmark.$handler.xml" ) {

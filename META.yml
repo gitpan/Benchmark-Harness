@@ -1,8 +1,8 @@
 # http://module-build.sourceforge.net/META-spec.html
 #XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
 name:         Benchmark-Harness
-version:      1.09
-version_from: Harness.pm
+version:      1.10
+version_from: 
 installdirs:  site
 requires:
     Devel::Peek:                   1.01

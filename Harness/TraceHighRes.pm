@@ -1,8 +1,10 @@
 use strict;
-use Benchmark::Harness;
 package Benchmark::Harness::TraceHighRes;
 use base qw(Benchmark::Harness::Trace);
-use vars qw($VERSION); $VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
+use Benchmark::Harness;
+use Benchmark::Harness::Constants;
+
+use vars qw($CVS_VERSION); $CVS_VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
 
 ### ###########################################################################
 sub Initialize {
@@ -65,12 +67,12 @@ if ( $^O ne 'MSWin32' ) { # Assume Linux, for now . . .
   die $@ if $@;
   my $procProcessTbl = new Proc::ProcessTable('cache_ttys' => 1);
 
-  *Benchmark::Harness::Handler::TraceHighRes::reportProcessInfo =
+  *Benchmark::Harness::Handler::TraceHighRes::reportTraceInfo =
       sub {
           my $self = shift;
 
           my $processTable = $procProcessTbl->table;
-          my $processIdx = $self->[Benchmark::Harness::Handler::PROCESSIDX];
+          my $processIdx = $self->[Benchmark::Harness::Handler::HNDLR_PROCESSIDX];
 
           my $procInfo = $processTable->[$processIdx] if defined($processIdx);
           # Our process idx is probably the same each time through . . .
@@ -84,7 +86,7 @@ if ( $^O ne 'MSWin32' ) { # Assume Linux, for now . . .
                 $processIdx += 1;
               }
             }
-            $self->[Benchmark::Harness::Handler::PROCESSIDX] = $processIdx;
+            $self->[HNDLR_PROCESSIDX] = $processIdx;
           }
 
           # a problem with Proc::ProcessTable needs to be fixed
@@ -95,13 +97,13 @@ if ( $^O ne 'MSWin32' ) { # Assume Linux, for now . . .
           $rMem = $largeError + ($largeError+$rMem) if ( $rMem < 0 );
 
           # Note: we do not call direct-parent ::Trace, since we're duplicating all its attributes, anyway
-          Benchmark::Harness::Handler::reportProcessInfo($self,
+          Benchmark::Harness::Handler::reportTraceInfo($self,
             {
                'm' => $mMem / 1024
               ,'p' => $procInfo->{pctcpu}
               ,'r' => $rMem / 1024
               ,'s' => $procInfo->{stime}
-              ,'t' => (Time::HiRes::time() - $self->[Benchmark::Harness::Handler::HARNESS]->{_startTime})
+              ,'t' => (Time::HiRes::time() - $self->[HNDLR_HARNESS]->{_startTime})
               ,'u' => $procInfo->{utime}
               ,'x' => $procInfo->{time}/1000
             }
@@ -115,6 +117,7 @@ if ( $^O ne 'MSWin32' ) { # Assume Linux, for now . . .
 
 package Benchmark::Harness::Handler::TraceHighRes;
 use base qw(Benchmark::Harness::Handler::Trace);
+use Benchmark::Harness::Constants;
 use Time::HiRes;
 
 =pod
@@ -144,12 +147,12 @@ Approximately 0.8 millisecond per trace (mostly from *::Trace.pm).
 =cut
 
 ### ###########################################################################
-sub reportProcessInfo {
+sub reportTraceInfo {
   my $self = shift;
 
-  Benchmark::Harness::Handler::Trace::reportProcessInfo($self,
+  Benchmark::Harness::Handler::Trace::reportTraceInfo($self,
               {
-                't' => ( Time::HiRes::time() - $self->[Benchmark::Harness::Handler::HARNESS]->{_startTime} )
+                't' => ( Time::HiRes::time() - $self->[HNDLR_HARNESS]->{_startTime} )
               }
               ,@_
           );
@@ -159,7 +162,7 @@ sub reportProcessInfo {
 # USAGE: Benchmark::TraceHighRes::OnSubEntry($harnessSubroutine, \@subrArguments )
 sub OnSubEntry {
   my $self = shift;
-  $self->reportProcessInfo();#(shift, caller(1));
+  $self->reportTraceInfo();#(shift, caller(1));
   return @_; # return the input arguments unchanged.
 }
 
@@ -167,7 +170,7 @@ sub OnSubEntry {
 # USAGE: Benchmark::TraceHighRes::OnSubEntry($harnessSubroutine, \@subrReturn )
 sub OnSubExit {
   my $self = shift;
-  $self->reportProcessInfo();#(shift, caller(1));
+  $self->reportTraceInfo();#(shift, caller(1));
   return @_; # return the input arguments unchanged.
 }
 

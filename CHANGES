@@ -1,4 +1,8 @@
 
+v1.10   - Added new Harnesses: Values, ValuesHighRes
+          EXPORT constants for blessed [] elements from Benchmark::Harness::Constants,
+                prepend "HRNSS_" or "HNDLR_" to all of their names
+          Changed 'reportProcessInfo' to 'reportTraceInfo' everywhere
 v1.08   - Layered architecture
           Better code harnessing
           TraceHighRes
